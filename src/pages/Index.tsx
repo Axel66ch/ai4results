@@ -1,8 +1,40 @@
 import Layout from "@/components/Layout";
 import MobileStickyBar from "@/components/MobileStickyBar";
-import KIQuiz from "@/components/KIQuiz";
+import KIQuiz, { QuizRolle } from "@/components/KIQuiz";
 import ScrollFadeIn from "@/components/ScrollFadeIn";
-import { Megaphone, TrendingUp, Headphones, Users, Briefcase, Calculator, HelpCircle, Layers, Target, Zap } from "lucide-react";
+import { Megaphone, TrendingUp, Headphones, Users, Briefcase, Calculator, HelpCircle, Layers, Target, Zap, Crown, ArrowRight, Check } from "lucide-react";
+
+const startQuizAsRolle = (rolle: QuizRolle) => {
+  window.dispatchEvent(new CustomEvent<QuizRolle>("kiquiz:rolle", { detail: rolle }));
+  document.getElementById("ki-quiz")?.scrollIntoView({ behavior: "smooth" });
+};
+
+const personas = [
+  {
+    rolle: "CEO / Geschäftsleitung" as QuizRolle,
+    icon: <Crown className="w-7 h-7" />,
+    title: "Für CEOs & Geschäftsleitung",
+    intro: "Sie müssen entscheiden, wo KI investiert wird — ohne Buzzwords, mit Zahlen.",
+    punkte: [
+      "Priorisierte KI-Roadmap statt endloser Experimente",
+      "ROI, Aufwand und Kosten pro Anwendung auf einen Blick",
+      "Entscheidungsgrundlage fürs nächste GL-Meeting",
+    ],
+    cta: "Meine KI-Hebel als CEO finden",
+  },
+  {
+    rolle: "CMO / Marketingleitung" as QuizRolle,
+    icon: <Target className="w-7 h-7" />,
+    title: "Für CMOs & Marketingleiter",
+    intro: "Sie brauchen mehr qualifizierte Leads — mit dem Team und Budget, das Sie haben.",
+    punkte: [
+      "KI-gestützte Lead-Generierung, die messbar Pipeline füllt",
+      "Content und Kampagnen skalieren ohne mehr Personal",
+      "Belegbare Resultate, die Sie intern verteidigen können",
+    ],
+    cta: "Meine KI-Hebel als CMO finden",
+  },
+];
 
 const Index = () => {
   return (
@@ -56,6 +88,47 @@ const Index = () => {
               ))}
             </div>
           ))}
+        </div>
+      </section>
+
+      {/* Persona-Einstiege */}
+      <section className="bg-background section-padding">
+        <div className="container-main">
+          <ScrollFadeIn>
+            <h2 className="text-3xl md:text-4xl font-bold font-heading text-brand-blue text-center mb-3">
+              Was ist Ihre Rolle?
+            </h2>
+            <p className="text-center text-muted-foreground mb-12 max-w-2xl mx-auto">
+              CEOs und CMOs stellen unterschiedliche Fragen an KI. Wählen Sie Ihren Einstieg — Ihre Empfehlungen werden darauf zugeschnitten.
+            </p>
+          </ScrollFadeIn>
+          <div className="grid gap-6 md:grid-cols-2 max-w-4xl mx-auto">
+            {personas.map((p, i) => (
+              <ScrollFadeIn key={p.rolle} delay={i * 100}>
+                <div className="bg-brand-beige rounded-2xl p-8 h-full flex flex-col hover:shadow-lg hover:-translate-y-1 transition-all border-b-4 border-transparent hover:border-brand-orange">
+                  <div className="w-14 h-14 rounded-xl bg-brand-blue flex items-center justify-center text-brand-orange mb-4">
+                    {p.icon}
+                  </div>
+                  <h3 className="text-xl font-bold font-heading text-brand-blue mb-2">{p.title}</h3>
+                  <p className="text-muted-foreground mb-4">{p.intro}</p>
+                  <ul className="space-y-2 mb-6 flex-1">
+                    {p.punkte.map((punkt) => (
+                      <li key={punkt} className="flex items-start gap-2 text-sm text-brand-blue">
+                        <Check className="w-4 h-4 text-brand-orange mt-0.5 shrink-0" />
+                        {punkt}
+                      </li>
+                    ))}
+                  </ul>
+                  <button
+                    onClick={() => startQuizAsRolle(p.rolle)}
+                    className="inline-flex items-center justify-center gap-2 rounded-lg bg-brand-orange px-6 py-3 font-semibold text-primary-foreground hover:brightness-110 transition-all"
+                  >
+                    {p.cta} <ArrowRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </ScrollFadeIn>
+            ))}
+          </div>
         </div>
       </section>
 

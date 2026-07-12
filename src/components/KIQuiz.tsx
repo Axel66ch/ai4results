@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { kiAnwendungen, KIAnwendung, bereiche } from "@/data/kiAnwendungen";
-import { Megaphone, TrendingUp, Headphones, Users, Briefcase, Calculator, Check } from "lucide-react";
+import { Megaphone, TrendingUp, Headphones, Users, Briefcase, Calculator, Check, Crown, Target, UserCog } from "lucide-react";
 
 const bereichIcons: Record<string, React.ReactNode> = {
   Marketing: <Megaphone className="w-6 h-6" />,
@@ -13,8 +13,58 @@ const bereichIcons: Record<string, React.ReactNode> = {
 
 const firmenGroessen = ["Unter 20 Mitarbeitende", "20–200 Mitarbeitende", "Über 200 Mitarbeitende"];
 
+export type QuizRolle = "CEO / Geschäftsleitung" | "CMO / Marketingleitung" | "Andere Rolle";
+
+interface RolleOption {
+  value: QuizRolle;
+  icon: React.ReactNode;
+  hint: string;
+  /** Bereiche, die für diese Rolle im Ranking bevorzugt werden */
+  coreBereiche: string[];
+  /** Vorauswahl der Bereiche in Schritt 3 */
+  defaultBereiche: string[];
+}
+
+const rollen: RolleOption[] = [
+  {
+    value: "CEO / Geschäftsleitung",
+    icon: <Crown className="w-6 h-6" />,
+    hint: "Sie wollen wissen, wo KI im ganzen Unternehmen den grössten Hebel hat",
+    coreBereiche: ["Geschäftsleitung", "Finanzen", "Sales"],
+    defaultBereiche: ["Geschäftsleitung", "Finanzen", "Sales"],
+  },
+  {
+    value: "CMO / Marketingleitung",
+    icon: <Target className="w-6 h-6" />,
+    hint: "Sie wollen mit KI mehr qualifizierte Leads und messbare Kampagnen",
+    coreBereiche: ["Marketing", "Sales"],
+    defaultBereiche: ["Marketing", "Sales"],
+  },
+  {
+    value: "Andere Rolle",
+    icon: <UserCog className="w-6 h-6" />,
+    hint: "Sie prüfen KI-Potenzial für Ihren Bereich oder Ihr Team",
+    coreBereiche: [],
+    defaultBereiche: [],
+  },
+];
+
+/** Einfaches Lead-Scoring für die Übergabe an CRM/Zapier */
+const computeLeadScore = (rolle: string, firmengroesse: string, anzahlBereiche: number) => {
+  let score = 0;
+  if (rolle === "CEO / Geschäftsleitung") score += 40;
+  else if (rolle === "CMO / Marketingleitung") score += 35;
+  else score += 10;
+  if (firmengroesse === "20–200 Mitarbeitende") score += 35;
+  else if (firmengroesse === "Über 200 Mitarbeitende") score += 25;
+  else score += 15;
+  score += Math.min(anzahlBereiche, 3) * 5;
+  return score;
+};
+
 const KIQuiz = () => {
   const [step, setStep] = useState(1);
+  const [rolle, setRolle] = useState<QuizRolle | "">("");
   const [firmengroesse, setFirmengroesse] = useState("");
   const [selectedBereiche, setSelectedBereiche] = useState<string[]>([]);
   const [results, setResults] = useState<KIAnwendung[]>([]);
@@ -23,6 +73,30 @@ const KIQuiz = () => {
   const [branche, setBranche] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+
+  // Persona-Einstiege (z.B. "Für CEOs"-Karte auf der Startseite) können die Rolle vorbelegen
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent<QuizRolle>).detail;
+      const option = rollen.find((r) => r.value === detail);
+      if (!option) return;
+      setRolle(option.value);
+      setSelectedBereiche(option.defaultBereiche);
+      setShowResults(false);
+      setSubmitted(false);
+      setStep(2);
+    };
+    window.addEventListener("kiquiz:rolle", handler);
+    return () => window.removeEventListener("kiquiz:rolle", handler);
+  }, []);
+
+  const selectRolle = (option: RolleOption) => {
+    setRolle(option.value);
+    if (selectedBereiche.length === 0) {
+      setSelectedBereiche(option.defaultBereiche);
+    }
+    setStep(2);
+  };
 
   const toggleBereich = (b: string) => {
     if (selectedBereiche.includes(b)) {
@@ -33,10 +107,17 @@ const KIQuiz = () => {
   };
 
   const calculateResults = () => {
+    const coreBereiche = rollen.find((r) => r.value === rolle)?.coreBereiche ?? [];
     const matched = kiAnwendungen
       .filter((a) => selectedBereiche.includes(a.bereich))
-      .sort((a, b) => a.aufwand - b.aufwand)
-      .slice(0, 5);
+      .map((a) => {
+        // Schnell umsetzbar + technologisch reif zuerst; Kernbereiche der Rolle bevorzugen
+        const score = a.reife * 0.4 + (100 - a.aufwand) * 0.6 + (coreBereiche.includes(a.bereich) ? 15 : 0);
+        return { anwendung: a, score };
+      })
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 5)
+      .map((x) => x.anwendung);
     setResults(matched);
     setShowResults(true);
   };
@@ -50,7 +131,15 @@ const KIQuiz = () => {
         method: "POST",
         mode: "no-cors",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, branche, firmengroesse, bereiche: selectedBereiche }),
+        body: JSON.stringify({
+          email,
+          branche,
+          firmengroesse,
+          rolle,
+          bereiche: selectedBereiche,
+          topAnwendungen: results.map((r) => r.title),
+          leadScore: computeLeadScore(rolle, firmengroesse, selectedBereiche.length),
+        }),
       });
       setSubmitted(true);
     } catch (err) {
@@ -59,6 +148,9 @@ const KIQuiz = () => {
     setSubmitting(false);
   };
 
+  const isCEO = rolle === "CEO / Geschäftsleitung";
+  const isCMO = rolle === "CMO / Marketingleitung";
+
   return (
     <section id="ki-quiz" className="bg-brand-beige section-padding">
       <div className="container-main max-w-4xl">
@@ -66,20 +158,18 @@ const KIQuiz = () => {
           Welche KI-Anwendungen passen zu Ihrem Unternehmen?
         </h2>
         <p className="text-center text-muted-foreground mb-10 max-w-2xl mx-auto">
-          2 Fragen — und Sie sehen sofort, welche der 18 KI-Anwendungen für Sie relevant sind, wie reif die Technologie ist und was die Umsetzung kostet.
+          3 Fragen — und Sie sehen sofort, welche der 18 KI-Anwendungen für Ihre Rolle und Ihr Unternehmen relevant sind, wie reif die Technologie ist und was die Umsetzung kostet.
         </p>
 
         {/* Progress */}
         <div className="flex items-center justify-center gap-2 mb-10">
-          {[1, 2, 3].map((s) => (
+          {[1, 2, 3, 4].map((s) => (
             <div
               key={s}
               className={`h-2 rounded-full transition-all ${
-                showResults && s === 3
-                  ? "w-16 bg-brand-lightblue"
-                  : step >= s || (showResults && s < 3)
-                  ? "w-16 bg-brand-lightblue"
-                  : "w-8 bg-brand-blue/20"
+                (showResults && s === 4) || step >= s || (showResults && s < 4)
+                  ? "w-14 bg-brand-lightblue"
+                  : "w-7 bg-brand-blue/20"
               }`}
             />
           ))}
@@ -87,14 +177,35 @@ const KIQuiz = () => {
 
         {!showResults && step === 1 && (
           <div className="space-y-4">
-            <p className="font-semibold text-brand-blue text-center mb-6">Schritt 1: Firmengrösse</p>
+            <p className="font-semibold text-brand-blue text-center mb-6">Schritt 1: Was ist Ihre Rolle?</p>
+            <div className="grid gap-4 md:grid-cols-3">
+              {rollen.map((r) => (
+                <button
+                  key={r.value}
+                  onClick={() => selectRolle(r)}
+                  className={`p-6 rounded-xl border-2 flex flex-col items-center gap-3 text-center transition-all hover:border-brand-orange ${
+                    rolle === r.value ? "border-brand-orange bg-brand-orange/10" : "border-brand-blue/20 bg-background"
+                  }`}
+                >
+                  <div className="text-brand-orange">{r.icon}</div>
+                  <span className="font-semibold text-brand-blue">{r.value}</span>
+                  <span className="text-xs text-muted-foreground">{r.hint}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {!showResults && step === 2 && (
+          <div className="space-y-4">
+            <p className="font-semibold text-brand-blue text-center mb-6">Schritt 2: Firmengrösse</p>
             <div className="grid gap-3 max-w-md mx-auto">
               {firmenGroessen.map((g) => (
                 <button
                   key={g}
                   onClick={() => {
                     setFirmengroesse(g);
-                    setStep(2);
+                    setStep(3);
                   }}
                   className={`p-4 rounded-xl border-2 text-left font-medium transition-all hover:border-brand-orange ${
                     firmengroesse === g ? "border-brand-orange bg-brand-orange/10" : "border-brand-blue/20 bg-background"
@@ -104,13 +215,25 @@ const KIQuiz = () => {
                 </button>
               ))}
             </div>
+            <div className="flex justify-center mt-6">
+              <button
+                onClick={() => setStep(1)}
+                className="px-6 py-3 rounded-lg border-2 border-brand-blue/30 text-brand-blue font-medium hover:bg-brand-blue/5 transition-colors"
+              >
+                Zurück
+              </button>
+            </div>
           </div>
         )}
 
-        {!showResults && step === 2 && (
+        {!showResults && step === 3 && (
           <div className="space-y-4">
-            <p className="font-semibold text-brand-blue text-center mb-2">Schritt 2: In welchen Bereichen wollen Sie KI einsetzen?</p>
-            <p className="text-sm text-muted-foreground text-center mb-6">(max. 3 wählbar)</p>
+            <p className="font-semibold text-brand-blue text-center mb-2">Schritt 3: In welchen Bereichen wollen Sie KI einsetzen?</p>
+            <p className="text-sm text-muted-foreground text-center mb-6">
+              {selectedBereiche.length > 0 && (isCEO || isCMO)
+                ? "Basierend auf Ihrer Rolle haben wir eine Vorauswahl getroffen — passen Sie sie gerne an (max. 3)"
+                : "(max. 3 wählbar)"}
+            </p>
             <div className="grid gap-4 md:grid-cols-3">
               {bereiche.map((b) => (
                 <button
@@ -132,7 +255,7 @@ const KIQuiz = () => {
             </div>
             <div className="flex justify-center gap-4 mt-8">
               <button
-                onClick={() => setStep(1)}
+                onClick={() => setStep(2)}
                 className="px-6 py-3 rounded-lg border-2 border-brand-blue/30 text-brand-blue font-medium hover:bg-brand-blue/5 transition-colors"
               >
                 Zurück
@@ -150,18 +273,39 @@ const KIQuiz = () => {
 
         {showResults && (
           <div className="space-y-8 animate-fade-in-up">
-            <h3 className="text-2xl font-bold font-heading text-brand-blue text-center">Ihre Top-5 KI-Anwendungen</h3>
-            <p className="text-center text-muted-foreground mb-8">Priorisiert nach Ihren Schwerpunkten — mit Reife, Aufwand und Kosten auf einen Blick</p>
-            
+            <h3 className="text-2xl font-bold font-heading text-brand-blue text-center">
+              {isCEO
+                ? "Ihre Top-5 KI-Hebel als CEO"
+                : isCMO
+                ? "Ihre Top-5 KI-Hebel für Marketing & Leads"
+                : "Ihre Top-5 KI-Anwendungen"}
+            </h3>
+            <p className="text-center text-muted-foreground mb-8">
+              Priorisiert nach Reife und Umsetzbarkeit für Ihre Rolle — mit Aufwand und Kosten auf einen Blick
+            </p>
+
             <div className="space-y-4">
               {results.map((item, i) => (
-                <ResultCard key={i} item={item} delay={i * 150} />
+                <ResultCard key={item.title} item={item} delay={i * 150} />
               ))}
             </div>
 
             {/* Opt-in */}
             <div className="mt-12 bg-brand-blue rounded-2xl p-8 text-primary-foreground">
-              <h4 className="text-xl font-bold font-heading text-center mb-6">Alle 18 KI-Anwendungen als Komplettpaket erhalten</h4>
+              <h4 className="text-xl font-bold font-heading text-center mb-2">
+                {isCEO
+                  ? "Ihre Entscheidungsgrundlage: Alle 18 KI-Anwendungen mit ROI & Kosten"
+                  : isCMO
+                  ? "Ihr Umsetzungspaket: Alle 18 KI-Anwendungen mit ROI & Quellen"
+                  : "Alle 18 KI-Anwendungen als Komplettpaket erhalten"}
+              </h4>
+              <p className="text-center text-primary-foreground/70 text-sm mb-6">
+                {isCEO
+                  ? "Damit Sie im nächsten GL-Meeting nicht über KI diskutieren, sondern entscheiden."
+                  : isCMO
+                  ? "Damit Sie intern belegen können, welche KI-Massnahmen Leads und Pipeline messbar steigern."
+                  : "Die komplette Übersicht für Ihren KI-Einstieg."}
+              </p>
               <div className="grid md:grid-cols-2 gap-4 mb-8">
                 <div className="bg-brand-beige rounded-xl p-5 text-brand-blue">
                   <p className="font-bold mb-2">18 KI-Anwendungen Übersicht & Scorecard</p>
@@ -174,50 +318,88 @@ const KIQuiz = () => {
               </div>
 
               {!submitted ? (
-                <form onSubmit={handleSubmit} className="max-w-md mx-auto space-y-4">
-                  <p className="text-sm text-center text-primary-foreground/70">Senden Sie mir beide Dokumente kostenlos zu:</p>
-                  <input
-                    type="text"
-                    placeholder="Ihre Branche — optional"
-                    value={branche}
-                    onChange={(e) => setBranche(e.target.value)}
-                    className="w-full px-4 py-3 rounded-lg bg-primary-foreground text-brand-blue placeholder:text-brand-blue/50"
-                  />
-                  <input
-                    type="email"
-                    required
-                    placeholder="E-Mail-Adresse"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="w-full px-4 py-3 rounded-lg bg-primary-foreground text-brand-blue placeholder:text-brand-blue/50"
-                  />
-                  <button
-                    type="submit"
-                    disabled={submitting}
-                    className="w-full py-3 rounded-lg bg-brand-orange font-semibold hover:brightness-110 transition-all disabled:opacity-50"
-                  >
-                    {submitting ? "Wird gesendet..." : "Jetzt kostenlos erhalten"}
-                  </button>
-                  <p className="text-xs text-center text-primary-foreground/50">
-                    Kein Spam. Abmeldung jederzeit möglich. 4results AG, Pfäffikon SZ.
-                  </p>
-                </form>
+                <>
+                  <form onSubmit={handleSubmit} className="max-w-md mx-auto space-y-4">
+                    <p className="text-sm text-center text-primary-foreground/70">Senden Sie mir beide Dokumente kostenlos zu:</p>
+                    <input
+                      type="text"
+                      placeholder="Ihre Branche — optional"
+                      value={branche}
+                      onChange={(e) => setBranche(e.target.value)}
+                      className="w-full px-4 py-3 rounded-lg bg-primary-foreground text-brand-blue placeholder:text-brand-blue/50"
+                    />
+                    <input
+                      type="email"
+                      required
+                      placeholder="Geschäftliche E-Mail-Adresse"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="w-full px-4 py-3 rounded-lg bg-primary-foreground text-brand-blue placeholder:text-brand-blue/50"
+                    />
+                    <button
+                      type="submit"
+                      disabled={submitting}
+                      className="w-full py-3 rounded-lg bg-brand-orange font-semibold hover:brightness-110 transition-all disabled:opacity-50"
+                    >
+                      {submitting ? "Wird gesendet..." : "Jetzt kostenlos erhalten"}
+                    </button>
+                    <p className="text-xs text-center text-primary-foreground/50">
+                      Kein Spam. Abmeldung jederzeit möglich. 4results AG, Pfäffikon SZ.
+                    </p>
+                  </form>
+                  <div className="max-w-md mx-auto mt-6 border-t border-primary-foreground/10 pt-4">
+                    <p className="text-sm italic text-primary-foreground/70 text-center">
+                      «Die Anzahl Leads hat sich vervielfacht — die Resultate lagen weit über unseren Erwartungen.»
+                    </p>
+                    <p className="text-xs text-primary-foreground/50 text-center mt-2">
+                      Dean Corkovic, Demand Generation, Avaloq Evolution AG
+                    </p>
+                  </div>
+                </>
               ) : (
-                <p className="text-center text-lg font-medium">
-                  Vielen Dank — Sie erhalten beide Dokumente in Kürze per E-Mail.
-                </p>
+                <div className="text-center space-y-6">
+                  <p className="text-lg font-medium">
+                    Vielen Dank — Sie erhalten beide Dokumente in Kürze per E-Mail.
+                  </p>
+                  <div className="bg-primary-foreground/10 rounded-xl p-6 max-w-lg mx-auto">
+                    <p className="font-bold mb-2">
+                      {isCEO
+                        ? "Der schnellste nächste Schritt: 15 Minuten mit Alex"
+                        : isCMO
+                        ? "Der schnellste Weg zu mehr Leads: 15 Minuten mit Alex"
+                        : "Der schnellste nächste Schritt: 15 Minuten mit Alex"}
+                    </p>
+                    <p className="text-sm text-primary-foreground/70 mb-4">
+                      {isCEO
+                        ? "Alex zeigt Ihnen anhand Ihrer Top-5, wo Ihr Unternehmen zuerst ansetzen sollte — unverbindlich und konkret."
+                        : isCMO
+                        ? "Alex zeigt Ihnen anhand Ihrer Top-5, wie Sie den ersten KI-Hebel in 30 Tagen live bringen — unverbindlich und konkret."
+                        : "Alex zeigt Ihnen anhand Ihrer Top-5 den grössten Hebel — unverbindlich und konkret."}
+                    </p>
+                    <a
+                      href="https://matech.as.me/15k"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-block px-8 py-3 bg-brand-orange rounded-lg font-semibold hover:brightness-110 transition-all"
+                    >
+                      Kostenloses Erstgespräch buchen
+                    </a>
+                  </div>
+                </div>
               )}
 
-              <div className="mt-6 text-center">
-                <a
-                  href="https://matech.as.me/15k"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-block px-6 py-3 border-2 border-primary-foreground/50 rounded-lg font-medium hover:bg-primary-foreground/10 transition-colors"
-                >
-                  Oder direkt sprechen: Kostenloses Erstgespräch buchen
-                </a>
-              </div>
+              {!submitted && (
+                <div className="mt-6 text-center">
+                  <a
+                    href="https://matech.as.me/15k"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-block px-6 py-3 border-2 border-primary-foreground/50 rounded-lg font-medium hover:bg-primary-foreground/10 transition-colors"
+                  >
+                    Oder direkt sprechen: Kostenloses Erstgespräch buchen
+                  </a>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -229,10 +411,10 @@ const KIQuiz = () => {
 const ResultCard = ({ item, delay }: { item: KIAnwendung; delay: number }) => {
   const [animate, setAnimate] = useState(false);
 
-  useState(() => {
+  useEffect(() => {
     const timer = setTimeout(() => setAnimate(true), delay + 100);
     return () => clearTimeout(timer);
-  });
+  }, [delay]);
 
   return (
     <div
