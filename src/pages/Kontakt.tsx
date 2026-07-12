@@ -41,6 +41,34 @@ const Kontakt = () => {
         </div>
       </section>
 
+      {/* Ablauf */}
+      <section className="bg-background section-padding pb-0">
+        <div className="container-main">
+          <ScrollFadeIn>
+            <h2 className="text-2xl md:text-3xl font-bold font-heading text-brand-blue text-center mb-10">
+              So läuft das Erstgespräch ab
+            </h2>
+          </ScrollFadeIn>
+          <div className="grid gap-6 md:grid-cols-3 max-w-4xl mx-auto">
+            {[
+              { step: "1", title: "Sie schildern Ihre Situation", desc: "Rolle, Team, Ziele — in 5 Minuten ist klar, wo Sie stehen" },
+              { step: "2", title: "Alex zeigt den grössten Hebel", desc: "Konkret für Ihr Unternehmen: Welche KI-Anwendung bringt zuerst messbare Resultate" },
+              { step: "3", title: "Sie entscheiden", desc: "Sie erhalten eine klare Empfehlung — ob Sie damit intern weiterarbeiten oder mit uns, bleibt Ihnen überlassen" },
+            ].map((s, i) => (
+              <ScrollFadeIn key={s.step} delay={i * 100}>
+                <div className="text-center">
+                  <div className="w-12 h-12 rounded-full bg-brand-orange text-primary-foreground font-bold text-xl flex items-center justify-center mx-auto mb-4">
+                    {s.step}
+                  </div>
+                  <h3 className="font-bold font-heading text-brand-blue mb-2">{s.title}</h3>
+                  <p className="text-sm text-muted-foreground">{s.desc}</p>
+                </div>
+              </ScrollFadeIn>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* Acuity Embed */}
       <section className="bg-background section-padding">
         <div className="container-main">
