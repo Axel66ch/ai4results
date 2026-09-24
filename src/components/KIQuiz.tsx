@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { kiAnwendungen, KIAnwendung, bereiche } from "@/data/kiAnwendungen";
+import { submitLead } from "@/lib/leadSubmit";
+import { getAttribution } from "@/lib/attribution";
 import { Megaphone, TrendingUp, Headphones, Users, Briefcase, Calculator, Check, Crown, Target, UserCog } from "lucide-react";
 
 const bereichIcons: Record<string, React.ReactNode> = {
@@ -73,6 +75,8 @@ const KIQuiz = () => {
   const [branche, setBranche] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [einwilligung, setEinwilligung] = useState(false);
+  const [submitError, setSubmitError] = useState("");
 
   // Persona-Einstiege (z.B. "Für CEOs"-Karte auf der Startseite) können die Rolle vorbelegen
   useEffect(() => {
@@ -124,28 +128,30 @@ const KIQuiz = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email) return;
+    if (!email || !einwilligung) return;
     setSubmitting(true);
+    setSubmitError("");
     try {
-      await fetch("https://hooks.zapier.com/hooks/catch/1066047/uxtmoir/", {
-        method: "POST",
-        mode: "no-cors",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email,
-          branche,
-          firmengroesse,
-          rolle,
-          bereiche: selectedBereiche,
-          topAnwendungen: results.map((r) => r.title),
-          leadScore: computeLeadScore(rolle, firmengroesse, selectedBereiche.length),
-        }),
+      await submitLead({
+        email,
+        branche,
+        firmengroesse,
+        rolle,
+        bereiche: selectedBereiche,
+        topAnwendungen: results.map((r) => r.title),
+        leadScore: computeLeadScore(rolle, firmengroesse, selectedBereiche.length),
+        einwilligung: `Ja, ${new Date().toISOString()}`,
+        ...getAttribution(),
       });
       setSubmitted(true);
     } catch (err) {
       console.error(err);
+      setSubmitError(
+        "Das hat leider nicht geklappt. Bitte versuchen Sie es erneut oder schreiben Sie an alex@4results.ch."
+      );
+    } finally {
+      setSubmitting(false);
     }
-    setSubmitting(false);
   };
 
   const isCEO = rolle === "CEO / Geschäftsleitung";
@@ -321,28 +327,60 @@ const KIQuiz = () => {
                 <>
                   <form onSubmit={handleSubmit} className="max-w-md mx-auto space-y-4">
                     <p className="text-sm text-center text-primary-foreground/70">Senden Sie mir beide Dokumente kostenlos zu:</p>
+                    <label htmlFor="quiz-branche" className="sr-only">Branche</label>
                     <input
+                      id="quiz-branche"
                       type="text"
                       placeholder="Ihre Branche — optional"
                       value={branche}
                       onChange={(e) => setBranche(e.target.value)}
                       className="w-full px-4 py-3 rounded-lg bg-primary-foreground text-brand-blue placeholder:text-brand-blue/50"
                     />
+                    <label htmlFor="quiz-email" className="sr-only">Geschäftliche E-Mail-Adresse</label>
                     <input
+                      id="quiz-email"
                       type="email"
                       required
+                      autoComplete="email"
                       placeholder="Geschäftliche E-Mail-Adresse"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       className="w-full px-4 py-3 rounded-lg bg-primary-foreground text-brand-blue placeholder:text-brand-blue/50"
                     />
+                    <label className="flex items-start gap-3 text-left text-sm text-primary-foreground/80">
+                      <input
+                        type="checkbox"
+                        required
+                        checked={einwilligung}
+                        onChange={(e) => setEinwilligung(e.target.checked)}
+                        className="mt-1 h-4 w-4 shrink-0 accent-brand-orange"
+                      />
+                      <span>
+                        Ja, ich möchte die beiden Dokumente sowie weitere Informationen zu KI und Marketing Automation
+                        per E-Mail erhalten. Die Einwilligung kann ich jederzeit widerrufen. Details in der{" "}
+                        <a
+                          href="https://www.marketingautomation.tech/datenschutz/"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="underline hover:text-brand-orange"
+                        >
+                          Datenschutzerklärung
+                        </a>
+                        .
+                      </span>
+                    </label>
                     <button
                       type="submit"
-                      disabled={submitting}
+                      disabled={submitting || !einwilligung}
                       className="w-full py-3 rounded-lg bg-brand-orange font-semibold hover:brightness-110 transition-all disabled:opacity-50"
                     >
                       {submitting ? "Wird gesendet..." : "Jetzt kostenlos erhalten"}
                     </button>
+                    {submitError && (
+                      <p role="alert" className="text-sm text-center text-brand-orange">
+                        {submitError}
+                      </p>
+                    )}
                     <p className="text-xs text-center text-primary-foreground/50">
                       Kein Spam. Abmeldung jederzeit möglich. 4results AG, Pfäffikon SZ.
                     </p>
