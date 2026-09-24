@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Menu, X } from "lucide-react";
+import { site } from "@/config/site";
 
 const navLinks = [
   { label: "Leistungen", to: "/leistungen" },
@@ -16,7 +17,7 @@ const Navbar = () => {
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
-    window.addEventListener("scroll", handleScroll);
+    window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
@@ -46,7 +47,7 @@ const Navbar = () => {
             </Link>
           ))}
           <a
-            href="https://matech.as.me/15k"
+            href={site.bookingUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="rounded-lg bg-brand-orange px-5 py-2.5 text-sm font-semibold text-primary-foreground transition-all hover:brightness-110"
@@ -56,14 +57,20 @@ const Navbar = () => {
         </div>
 
         {/* Mobile toggle */}
-        <button onClick={() => setIsOpen(!isOpen)} className="md:hidden text-primary-foreground">
+        <button
+          onClick={() => setIsOpen(!isOpen)}
+          aria-label={isOpen ? "Menü schliessen" : "Menü öffnen"}
+          aria-expanded={isOpen}
+          aria-controls="mobile-menu"
+          className="md:hidden text-primary-foreground"
+        >
           {isOpen ? <X size={24} /> : <Menu size={24} />}
         </button>
       </div>
 
       {/* Mobile menu */}
       {isOpen && (
-        <div className="md:hidden bg-brand-blue border-t border-primary-foreground/10 px-4 pb-6">
+        <div id="mobile-menu" className="md:hidden bg-brand-blue border-t border-primary-foreground/10 px-4 pb-6">
           {navLinks.map((link) => (
             <Link
               key={link.to}
@@ -74,7 +81,7 @@ const Navbar = () => {
             </Link>
           ))}
           <a
-            href="https://matech.as.me/15k"
+            href={site.bookingUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="mt-3 block rounded-lg bg-brand-orange px-5 py-3 text-center text-sm font-semibold text-primary-foreground"

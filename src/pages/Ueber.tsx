@@ -1,6 +1,7 @@
 import Layout from "@/components/Layout";
 import ScrollFadeIn from "@/components/ScrollFadeIn";
 import { Linkedin, Phone, Shield, Gauge, BarChart3 } from "lucide-react";
+import { site } from "@/config/site";
 
 const team = [
   {
@@ -22,7 +23,7 @@ const team = [
     role: "Virtuelle Kundenberaterin (KI)",
     img: "/images/mira.png",
     desc: "KI-basierte Telefonassistentin der 4results AG. Sie nimmt Anrufe entgegen, beantwortet Fragen eigenständig und koordiniert Termine — professionell und empathisch.",
-    phone: "+41445057078",
+    phone: site.phone,
   },
 ];
 
@@ -209,7 +210,7 @@ const Ueber = () => {
           <ScrollFadeIn delay={400}>
             <div className="mt-12 text-center">
               <a
-                href="https://matech.as.me/15k"
+                href={site.bookingUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center justify-center rounded-lg bg-brand-orange px-8 py-4 text-lg font-semibold text-primary-foreground hover:brightness-110 transition-all"

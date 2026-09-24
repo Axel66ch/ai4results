@@ -1,6 +1,7 @@
 import Layout from "@/components/Layout";
 import ScrollFadeIn from "@/components/ScrollFadeIn";
 import { Rocket, Settings, GraduationCap, LifeBuoy } from "lucide-react";
+import { site } from "@/config/site";
 
 const services = [
   { icon: <Rocket className="w-8 h-8" />, title: "KI & Automation Kickstart", desc: "Das 90-Tage-Programm für CEOs, die KI strukturiert einführen wollen — mit klarem Plan, messbaren Meilensteinen und Begleitung bis zum Ergebnis" },
@@ -68,7 +69,7 @@ const Leistungen = () => {
               Bereit für den nächsten Schritt?
             </h2>
             <a
-              href="https://matech.as.me/15k"
+              href={site.bookingUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center justify-center rounded-lg bg-brand-blue px-8 py-4 text-lg font-semibold hover:brightness-110 transition-all"

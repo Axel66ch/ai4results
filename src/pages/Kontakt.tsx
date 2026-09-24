@@ -1,6 +1,7 @@
 import Layout from "@/components/Layout";
 import ScrollFadeIn from "@/components/ScrollFadeIn";
 import { Lightbulb, Clock, Users } from "lucide-react";
+import { site } from "@/config/site";
 
 const benefits = [
   { icon: <Lightbulb className="w-8 h-8" />, text: "Marketing läuft — aber Automation fehlt der rote Faden? Wir finden ihn." },
@@ -75,7 +76,7 @@ const Kontakt = () => {
           <ScrollFadeIn>
             <div className="rounded-2xl overflow-hidden shadow-lg">
               <iframe
-                src="https://matech.as.me/15k"
+                src={site.bookingUrl}
                 title="Termin buchen"
                 className="w-full border-0"
                 style={{ minHeight: "800px" }}
@@ -101,7 +102,7 @@ const Kontakt = () => {
               Mira ist unsere KI-Telefonassistentin. In weniger als 60 Sekunden findet sie den optimalen Slot für Ihr Gespräch mit Alex.
             </p>
             <a
-              href="tel:+41445057078"
+              href={`tel:${site.phone}`}
               className="inline-flex items-center justify-center rounded-lg bg-brand-orange px-8 py-4 text-lg font-semibold hover:brightness-110 transition-all"
             >
               Jetzt mit Mira sprechen
@@ -116,13 +117,13 @@ const Kontakt = () => {
           <ScrollFadeIn>
             <div className="space-y-2 text-brand-blue">
               <p className="font-semibold">
-                <a href="mailto:alex@4results.ch" className="hover:text-brand-orange transition-colors">
-                  alex@4results.ch
+                <a href={`mailto:${site.email}`} className="hover:text-brand-orange transition-colors">
+                  {site.email}
                 </a>
               </p>
               <p>
-                <a href="tel:+41445057078" className="hover:text-brand-orange transition-colors">
-                  +41 44 505 70 78
+                <a href={`tel:${site.phone}`} className="hover:text-brand-orange transition-colors">
+                  {site.phoneDisplay}
                 </a>
               </p>
               <p className="text-muted-foreground">

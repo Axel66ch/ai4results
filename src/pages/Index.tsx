@@ -3,6 +3,7 @@ import MobileStickyBar from "@/components/MobileStickyBar";
 import KIQuiz, { QuizRolle } from "@/components/KIQuiz";
 import ScrollFadeIn from "@/components/ScrollFadeIn";
 import { Megaphone, TrendingUp, Headphones, Users, Briefcase, Calculator, HelpCircle, Layers, Target, Zap, Crown, ArrowRight, Check } from "lucide-react";
+import { site } from "@/config/site";
 
 const startQuizAsRolle = (rolle: QuizRolle) => {
   window.dispatchEvent(new CustomEvent<QuizRolle>("kiquiz:rolle", { detail: rolle }));
@@ -58,7 +59,7 @@ const Index = () => {
           <ScrollFadeIn delay={400}>
             <div className="mt-10 flex flex-col sm:flex-row gap-4">
               <a
-                href="https://matech.as.me/15k"
+                href={site.bookingUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center justify-center rounded-lg bg-brand-orange px-8 py-4 text-lg font-semibold hover:brightness-110 transition-all"
@@ -222,7 +223,7 @@ const Index = () => {
           <ScrollFadeIn delay={400}>
             <div className="mt-12 text-center">
               <a
-                href="https://matech.as.me/15k"
+                href={site.bookingUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center justify-center rounded-lg bg-brand-orange px-8 py-4 text-lg font-semibold hover:brightness-110 transition-all"
@@ -290,7 +291,7 @@ const Index = () => {
               Bereit für KI, die wirklich funktioniert?
             </h2>
             <a
-              href="https://matech.as.me/15k"
+              href={site.bookingUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center justify-center rounded-lg bg-brand-blue px-8 py-4 text-lg font-semibold hover:brightness-110 transition-all"

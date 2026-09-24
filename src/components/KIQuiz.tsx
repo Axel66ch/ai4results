@@ -3,6 +3,7 @@ import { kiAnwendungen, KIAnwendung, bereiche } from "@/data/kiAnwendungen";
 import { submitLead } from "@/lib/leadSubmit";
 import { getAttribution } from "@/lib/attribution";
 import { Megaphone, TrendingUp, Headphones, Users, Briefcase, Calculator, Check, Crown, Target, UserCog } from "lucide-react";
+import { site } from "@/config/site";
 
 const bereichIcons: Record<string, React.ReactNode> = {
   Marketing: <Megaphone className="w-6 h-6" />,
@@ -95,11 +96,22 @@ const KIQuiz = () => {
   }, []);
 
   const selectRolle = (option: RolleOption) => {
-    setRolle(option.value);
-    if (selectedBereiche.length === 0) {
+    const previousDefaults = rollen.find((r) => r.value === rolle)?.defaultBereiche ?? [];
+    const untouched =
+      selectedBereiche.length === previousDefaults.length &&
+      selectedBereiche.every((b) => previousDefaults.includes(b));
+    // Vorauswahl nur ersetzen, wenn die Person sie noch nicht selbst angepasst hat
+    if (selectedBereiche.length === 0 || untouched) {
       setSelectedBereiche(option.defaultBereiche);
     }
+    setRolle(option.value);
     setStep(2);
+  };
+
+  const editSelection = () => {
+    setShowResults(false);
+    setStep(3);
+    document.getElementById("ki-quiz")?.scrollIntoView({ behavior: "smooth" });
   };
 
   const toggleBereich = (b: string) => {
@@ -147,7 +159,7 @@ const KIQuiz = () => {
     } catch (err) {
       console.error(err);
       setSubmitError(
-        "Das hat leider nicht geklappt. Bitte versuchen Sie es erneut oder schreiben Sie an alex@4results.ch."
+        `Das hat leider nicht geklappt. Bitte versuchen Sie es erneut oder schreiben Sie an ${site.email}.`
       );
     } finally {
       setSubmitting(false);
@@ -173,7 +185,7 @@ const KIQuiz = () => {
             <div
               key={s}
               className={`h-2 rounded-full transition-all ${
-                (showResults && s === 4) || step >= s || (showResults && s < 4)
+                showResults || step >= s
                   ? "w-14 bg-brand-lightblue"
                   : "w-7 bg-brand-blue/20"
               }`}
@@ -189,6 +201,7 @@ const KIQuiz = () => {
                 <button
                   key={r.value}
                   onClick={() => selectRolle(r)}
+                  aria-pressed={rolle === r.value}
                   className={`p-6 rounded-xl border-2 flex flex-col items-center gap-3 text-center transition-all hover:border-brand-orange ${
                     rolle === r.value ? "border-brand-orange bg-brand-orange/10" : "border-brand-blue/20 bg-background"
                   }`}
@@ -209,6 +222,7 @@ const KIQuiz = () => {
               {firmenGroessen.map((g) => (
                 <button
                   key={g}
+                  aria-pressed={firmengroesse === g}
                   onClick={() => {
                     setFirmengroesse(g);
                     setStep(3);
@@ -245,6 +259,7 @@ const KIQuiz = () => {
                 <button
                   key={b}
                   onClick={() => toggleBereich(b)}
+                  aria-pressed={selectedBereiche.includes(b)}
                   className={`p-6 rounded-xl border-2 flex flex-col items-center gap-3 transition-all hover:border-brand-orange ${
                     selectedBereiche.includes(b)
                       ? "border-brand-orange bg-brand-orange/10"
@@ -281,10 +296,10 @@ const KIQuiz = () => {
           <div className="space-y-8 animate-fade-in-up">
             <h3 className="text-2xl font-bold font-heading text-brand-blue text-center">
               {isCEO
-                ? "Ihre Top-5 KI-Hebel als CEO"
+                ? `Ihre Top-${results.length} KI-Hebel als CEO`
                 : isCMO
-                ? "Ihre Top-5 KI-Hebel für Marketing & Leads"
-                : "Ihre Top-5 KI-Anwendungen"}
+                ? `Ihre Top-${results.length} KI-Hebel für Marketing & Leads`
+                : `Ihre Top-${results.length} KI-Anwendungen`}
             </h3>
             <p className="text-center text-muted-foreground mb-8">
               Priorisiert nach Reife und Umsetzbarkeit für Ihre Rolle — mit Aufwand und Kosten auf einen Blick
@@ -294,6 +309,14 @@ const KIQuiz = () => {
               {results.map((item, i) => (
                 <ResultCard key={item.title} item={item} delay={i * 150} />
               ))}
+            </div>
+            <div className="flex justify-center">
+              <button
+                onClick={editSelection}
+                className="px-6 py-3 rounded-lg border-2 border-brand-blue/30 text-brand-blue font-medium hover:bg-brand-blue/5 transition-colors"
+              >
+                Auswahl anpassen
+              </button>
             </div>
 
             {/* Opt-in */}
@@ -359,7 +382,7 @@ const KIQuiz = () => {
                         Ja, ich möchte die beiden Dokumente sowie weitere Informationen zu KI und Marketing Automation
                         per E-Mail erhalten. Die Einwilligung kann ich jederzeit widerrufen. Details in der{" "}
                         <a
-                          href="https://www.marketingautomation.tech/datenschutz/"
+                          href={site.datenschutzUrl}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="underline hover:text-brand-orange"
@@ -409,13 +432,13 @@ const KIQuiz = () => {
                     </p>
                     <p className="text-sm text-primary-foreground/70 mb-4">
                       {isCEO
-                        ? "Alex zeigt Ihnen anhand Ihrer Top-5, wo Ihr Unternehmen zuerst ansetzen sollte — unverbindlich und konkret."
+                        ? "Alex zeigt Ihnen anhand Ihrer Top-Anwendungen, wo Ihr Unternehmen zuerst ansetzen sollte — unverbindlich und konkret."
                         : isCMO
-                        ? "Alex zeigt Ihnen anhand Ihrer Top-5, wie Sie den ersten KI-Hebel in 30 Tagen live bringen — unverbindlich und konkret."
-                        : "Alex zeigt Ihnen anhand Ihrer Top-5 den grössten Hebel — unverbindlich und konkret."}
+                        ? "Alex zeigt Ihnen anhand Ihrer Top-Anwendungen, wie Sie den ersten KI-Hebel in 30 Tagen live bringen — unverbindlich und konkret."
+                        : "Alex zeigt Ihnen anhand Ihrer Top-Anwendungen den grössten Hebel — unverbindlich und konkret."}
                     </p>
                     <a
-                      href="https://matech.as.me/15k"
+                      href={site.bookingUrl}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-block px-8 py-3 bg-brand-orange rounded-lg font-semibold hover:brightness-110 transition-all"
@@ -429,7 +452,7 @@ const KIQuiz = () => {
               {!submitted && (
                 <div className="mt-6 text-center">
                   <a
-                    href="https://matech.as.me/15k"
+                    href={site.bookingUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-block px-6 py-3 border-2 border-primary-foreground/50 rounded-lg font-medium hover:bg-primary-foreground/10 transition-colors"
@@ -457,7 +480,6 @@ const ResultCard = ({ item, delay }: { item: KIAnwendung; delay: number }) => {
   return (
     <div
       className="bg-background rounded-xl p-6 border border-brand-blue/10 shadow-sm grid md:grid-cols-2 gap-6"
-      style={{ animationDelay: `${delay}ms` }}
     >
       <div>
         <span className="inline-block px-3 py-1 rounded-full bg-brand-lightblue/20 text-brand-lightblue text-xs font-medium mb-3">
@@ -496,8 +518,8 @@ const BarWithLabel = ({
     </div>
     <div className="h-2 bg-brand-blue/10 rounded-full overflow-hidden">
       <div
-        className={`h-full rounded-full transition-all duration-[1200ms] ease-out ${color}`}
-        style={{ width: animate ? `${value}%` : "0%" }}
+        className={`h-full rounded-full transition-all ease-out motion-reduce:transition-none ${color}`}
+        style={{ width: animate ? `${value}%` : "0%", transitionDuration: "1200ms" }}
       />
     </div>
     <p className="text-xs text-muted-foreground mt-1">{sublabel}</p>

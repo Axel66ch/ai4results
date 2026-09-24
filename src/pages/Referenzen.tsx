@@ -1,5 +1,6 @@
 import Layout from "@/components/Layout";
 import ScrollFadeIn from "@/components/ScrollFadeIn";
+import { site } from "@/config/site";
 
 const testimonials = [
   { quote: "Die Anzahl Leads hat sich vervielfacht, einige Hot Leads sind dabei — die Resultate lagen weit über unseren Erwartungen.", author: "Dean Corkovic", role: "Project Manager Demand Generation, Avaloq Evolution AG", featured: true },
@@ -84,7 +85,7 @@ const Referenzen = () => {
               Lassen Sie uns gemeinsam prüfen, was für Sie möglich ist.
             </p>
             <a
-              href="https://matech.as.me/15k"
+              href={site.bookingUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center justify-center rounded-lg bg-brand-blue px-8 py-4 text-lg font-semibold hover:brightness-110 transition-all"

@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { site } from "@/config/site";
 
 const Footer = () => (
   <footer className="bg-brand-blue text-primary-foreground">
@@ -17,12 +18,12 @@ const Footer = () => (
             8808 Pfäffikon SZ
           </p>
           <p className="mt-3 text-sm text-primary-foreground/80">
-            <a href="tel:+41445057078" className="hover:text-brand-orange transition-colors">+41 44 505 70 78</a>
+            <a href={`tel:${site.phone}`} className="hover:text-brand-orange transition-colors">{site.phoneDisplay}</a>
           </p>
         </div>
         <div className="flex flex-col gap-2 text-sm">
-          <a href="https://www.marketingautomation.tech/impressum/" target="_blank" rel="noopener noreferrer" className="text-primary-foreground/60 hover:text-brand-orange transition-colors">Impressum</a>
-          <a href="https://www.marketingautomation.tech/datenschutz/" target="_blank" rel="noopener noreferrer" className="text-primary-foreground/60 hover:text-brand-orange transition-colors">Datenschutz</a>
+          <a href={site.impressumUrl} target="_blank" rel="noopener noreferrer" className="text-primary-foreground/60 hover:text-brand-orange transition-colors">Impressum</a>
+          <a href={site.datenschutzUrl} target="_blank" rel="noopener noreferrer" className="text-primary-foreground/60 hover:text-brand-orange transition-colors">Datenschutz</a>
         </div>
       </div>
       <div className="mt-12 border-t border-primary-foreground/10 pt-6 text-center text-xs text-primary-foreground/40">
